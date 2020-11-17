@@ -49,6 +49,8 @@ public class CouchbaseConnectionDialog {
   private TextVar wUsername;
   private TextVar wPassword;
   private TextVar wBucket;
+  private Button m_wIsCloud;
+
   
   Control lastControl;
 
@@ -113,7 +115,7 @@ public class CouchbaseConnectionDialog {
     wHostname.addSelectionListener( selAdapter );
     wPort.addSelectionListener( selAdapter );
     wBucket.addSelectionListener( selAdapter );
-
+    m_wIsCloud.addSelectionListener(selAdapter);
     // Detect X or ALT-F4 or something that kills this window...
     shell.addShellListener( new ShellAdapter() {
       public void shellClosed( ShellEvent e ) {
@@ -136,6 +138,7 @@ public class CouchbaseConnectionDialog {
   }
 
   private void addFormWidgets() {
+	  
 
     // The name
     Label wlName = new Label( shell, SWT.RIGHT );
@@ -154,6 +157,25 @@ public class CouchbaseConnectionDialog {
     fdName.right = new FormAttachment( 95, 0 );
     wName.setLayoutData( fdName );
     lastControl = wName;
+	
+    Label wlIsCloud = new Label( shell, SWT.RIGHT );
+    wlIsCloud.setText(
+        BaseMessages.getString(PKG, "CouchbaseConnectionDialog.IsCloud.Label" ) );
+    props.setLook( wlIsCloud);
+    FormData fdClean = new FormData();
+    fdClean.top = new FormAttachment( lastControl, margin );
+    fdClean.left = new FormAttachment( 0, 0 );
+    fdClean.right = new FormAttachment( middle, -margin );
+    wlIsCloud.setLayoutData( fdClean );
+    m_wIsCloud = new Button( shell, SWT.CHECK );
+    props.setLook( m_wIsCloud );
+	
+	fdClean = new FormData();
+    fdClean.top = new FormAttachment( lastControl, margin );
+    fdClean.left = new FormAttachment( middle, 0 );
+    fdClean.right = new FormAttachment( 100, 0 );
+    m_wIsCloud.setLayoutData( fdClean );
+    lastControl = m_wIsCloud;
 
     // The Hostname
     Label wlHostname = new Label( shell, SWT.RIGHT );

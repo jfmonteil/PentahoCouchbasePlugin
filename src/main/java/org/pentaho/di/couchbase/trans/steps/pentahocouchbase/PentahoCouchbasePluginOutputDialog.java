@@ -602,7 +602,10 @@ public class PentahoCouchbasePluginOutputDialog extends BaseStepDialog implement
   private void setConnectionValues(){
 	  	try {
 		List<String> collectionNames=getCollections();
+		if(collectionNames!=null){
 		wCollection.setItems( collectionNames.toArray( new String[ 0 ] ) );
+		}
+		else throw new KettleException( "No collections");
 	
 	   } catch ( Exception e ) {
       new ErrorDialog( shell, "Error", "Unable to list Couchbase collections", e );

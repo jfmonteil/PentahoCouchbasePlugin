@@ -36,6 +36,8 @@ Note that more advanced mechanisms of authentication and connection options (inc
 *Test Button lets you check the connection
 
 ![Couchbase connection tab](https://raw.githubusercontent.com/jfmonteil/PentahoCouchbasePlugin/main/screenshots/new_connection.png)
+###Cloud
+Check if it is a Couchbase DBAAS (Cloud). In this case the connection url will be *"cb.<your endpoint address>.dp.cloud.couchbase.com";*. Fill in your *<your endpoint address>* in the *host* field.
 
 ### Collection 
 Lets you specify a collection (scope will come as well), if no collection is chosen. The default collection will be used covering the whole bucket. Collections and scope are not available before V6 of Couchbase.

@@ -4,6 +4,13 @@ import com.couchbase.client.java.*;
 import com.couchbase.client.java.kv.*;
 import com.couchbase.client.java.json.*;
 import com.couchbase.client.java.query.*;
+import com.couchbase.client.core.deps.io.netty.handler.ssl.util.InsecureTrustManagerFactory;
+import com.couchbase.client.java.manager.query.CreatePrimaryQueryIndexOptions;
+import com.couchbase.client.java.query.QueryResult;
+import com.couchbase.client.core.env.IoConfig;
+import com.couchbase.client.core.env.SecurityConfig;
+import com.couchbase.client.java.env.ClusterEnvironment;
+
 
 //import okhttp3.OkHttpClient;
 
@@ -47,6 +54,9 @@ public class CouchbaseConnection extends Variables {
   @MetaStoreAttribute
   private String bucketName;
   
+  @MetaStoreAttribute
+  private Boolean isCloud;
+  
   //private ResponseFormat responseFormat;
   
   private String apiUrlToUse;
@@ -68,22 +78,24 @@ public class CouchbaseConnection extends Variables {
     this.password = source.password;
 	//this.responseFormat=ResponseFormat.JSON;
 	this.bucketName=source.bucketName;
+	this.isCloud=source.isCloud;
   }
 
-  public CouchbaseConnection( String name, String hostname, String port, String username, String password, String bucketName) {
+  public CouchbaseConnection( String name, String hostname, String port, String username, String password, String bucketName, boolean isCloud) {
     this.name = name;
     this.hostname = hostname;
     this.port = port;
     this.username = username;
     this.password = password;
 	this.bucketName=bucketName;
+	this.isCloud=isCloud;
 	//this.responseFormat=ResponseFormat.JSON;
   }
 
   public Boolean test() throws KettleException {
     String apiUrlToUse="";
 	String bucketName = this.getRealBucket();
-	
+	Boolean isCloud=this.getIsCloud();
 	String username = this.getRealUsername();//"Administrator"
 	String password = this.getRealPassword();//"password";
 	Cluster cluster = null;
@@ -92,11 +104,22 @@ public class CouchbaseConnection extends Variables {
 	Duration duration4 = Duration.ofSeconds(10);
       
 	try {
-
+		if(!isCloud){
 		// Initialize thEncr.decryptPasswordOptionallyEncrypted(this.getRealPassword())e Connection
 		cluster = Cluster.connect(this.getRealHostname(), username, password);
 		cluster.waitUntilReady(duration4);
 	//	logBasic("Connected to :"+this.getRealHostname()+" with "+ username +"pass"+ password);
+		}
+		else {
+			    String endpoint="cb."+this.getRealHostname()+".dp.cloud.couchbase.com";
+				ClusterEnvironment env = ClusterEnvironment.builder()
+                .securityConfig(SecurityConfig.enableTls(true)
+                        .trustManagerFactory(InsecureTrustManagerFactory.INSTANCE))
+                .ioConfig(IoConfig.enableDnsSrv(true))
+                .build();
+        // Initialize the Connection
+				cluster = Cluster.connect(endpoint,ClusterOptions.clusterOptions(username, password).environment(env));
+		}
 		if(cluster==null){
 			//logBasic("impossible to connect to cluster");
 			throw new KettleException( "4 Error connecting to CouchBase impossible to connect to cluseter");
@@ -187,6 +210,14 @@ public class CouchbaseConnection extends Variables {
    public String getRealBucket() {
     return environmentSubstitute( bucketName );
   }
+  
+  public boolean getIsCloud() {
+	return isCloud;
+  }
+  
+  public void setIsCloud(boolean isCloud){
+	this.isCloud=isCloud;
+  }	
   
 
 
@@ -305,17 +336,34 @@ public class CouchbaseConnection extends Variables {
   
   public Collection connectToCouchbase(String collectionName) throws InterruptedException, IOException {
     String bucketName = this.getRealBucket();
+	Boolean isCloud=this.getIsCloud();
 	Duration duration4 = Duration.ofSeconds(10);
 	String username = this.getRealUsername();//"Administrator"
 	String password = this.getRealPassword();//"password";
 	Cluster cluster = null;
 	Bucket bucket = null;
 	Collection collection=null;
+	String endpoint="cb."+this.getRealHostname()+".dp.cloud.couchbase.com";
+
 	try {
 
+		if(!isCloud){
 		// Initialize thEncr.decryptPasswordOptionallyEncrypted(this.getRealPassword())e Connection
 		cluster = Cluster.connect(this.getRealHostname(), username, password);
 		cluster.waitUntilReady(duration4);
+	//	logBasic("Connected to :"+this.getRealHostname()+" with "+ username +"pass"+ password);
+		}
+		else {
+			    ClusterEnvironment env = ClusterEnvironment.builder()
+                .securityConfig(SecurityConfig.enableTls(true)
+                        .trustManagerFactory(InsecureTrustManagerFactory.INSTANCE))
+                .ioConfig(IoConfig.enableDnsSrv(true))
+                .build();
+
+        // Initialize the Connection
+				cluster = Cluster.connect(endpoint,
+                ClusterOptions.clusterOptions(username, password).environment(env));
+		}
 		if(cluster==null){
 			//logBasic("impossible to connect to cluster");
 			throw new IOException( "3 Error connecting to CouchBase ");
@@ -358,12 +406,29 @@ public class CouchbaseConnection extends Variables {
 	Cluster cluster = null;
 	Bucket bucket = null;
 	Collection collection=null;
+	Boolean isCloud=this.getIsCloud();
 	Duration duration4 = Duration.ofSeconds(10);
+
 	try {
 
+		if(!isCloud){
 		// Initialize thEncr.decryptPasswordOptionallyEncrypted(this.getRealPassword())e Connection
 		cluster = Cluster.connect(this.getRealHostname(), username, password);
 		cluster.waitUntilReady(duration4);
+	//	logBasic("Connected to :"+this.getRealHostname()+" with "+ username +"pass"+ password);
+		}
+		else {
+			    String endpoint="cb."+this.getRealHostname()+".dp.cloud.couchbase.com";
+				ClusterEnvironment env = ClusterEnvironment.builder()
+                .securityConfig(SecurityConfig.enableTls(true)
+                        .trustManagerFactory(InsecureTrustManagerFactory.INSTANCE))
+                .ioConfig(IoConfig.enableDnsSrv(true))
+                .build();
+
+        // Initialize the Connection
+				cluster = Cluster.connect(endpoint,
+                ClusterOptions.clusterOptions(username, password).environment(env));
+		}
 		if(cluster==null){
 			//logBasic("impossible to connect to cluster");
 			throw new IOException( "1 Error connecting to CouchBase no cluster ");
@@ -409,10 +474,22 @@ public class CouchbaseConnection extends Variables {
 	Cluster cluster = null;
 	Bucket bucket = null;
 	try {
-
+        if(!isCloud){
 		// Initialize thEncr.decryptPasswordOptionallyEncrypted(this.getRealPassword())e Connection
 		cluster = Cluster.connect(this.getRealHostname(), username, password);
 		cluster.waitUntilReady(duration4);
+		}
+		else {
+			    String endpoint="cb."+this.getRealHostname()+".dp.cloud.couchbase.com";
+				ClusterEnvironment env = ClusterEnvironment.builder()
+                .securityConfig(SecurityConfig.enableTls(true)
+                        .trustManagerFactory(InsecureTrustManagerFactory.INSTANCE))
+                .ioConfig(IoConfig.enableDnsSrv(true))
+                .build();
+        // Initialize the Connection
+				cluster = Cluster.connect(endpoint,
+                ClusterOptions.clusterOptions(username, password).environment(env));
+		}
 		if(cluster==null){
 			//logBasic("impossible to connect to cluster");
 			throw new IOException( "Error connecting to CouchBase ");
