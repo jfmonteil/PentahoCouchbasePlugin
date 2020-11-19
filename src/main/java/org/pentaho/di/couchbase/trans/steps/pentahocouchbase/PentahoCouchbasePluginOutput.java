@@ -153,7 +153,7 @@ public class PentahoCouchbasePluginOutput extends BaseStep implements StepInterf
 					}*/
 				
             } catch (Exception e) {
-                logError("Error: for couchbase Database : "+environmentSubstitute(meta.getCollection())+" for Bucket :"+data.couchbaseConnection.getRealBucket() + e.getMessage(), e);
+                logError("Error: for couchbase Database : on  "+data.couchbaseConnection.getIsCloud()+" ,Collection :"+environmentSubstitute(meta.getCollection())+" for Bucket :"+data.couchbaseConnection.getRealBucket() +"exception"+ e.getMessage(), e);
                 setErrors(1L);
                 stopAll();
                 return false;
@@ -265,7 +265,7 @@ public class PentahoCouchbasePluginOutput extends BaseStep implements StepInterf
 	  } catch (Exception e ) {
       if ( !getStepMeta().isDoingErrorHandling() ) {
         logError(
-            BaseMessages.getString( PentahoCouchbasePluginOutputMeta.PKG, "MQTTClientStep.ErrorInStepRunning", e.getMessage() ) );
+            BaseMessages.getString( PentahoCouchbasePluginOutputMeta.PKG, "PentahoCouchbasePluginOutput.ErrorInStepRunning", e.getMessage() ) );
         setErrors( 1 );
         stopAll();
         setOutputDone();

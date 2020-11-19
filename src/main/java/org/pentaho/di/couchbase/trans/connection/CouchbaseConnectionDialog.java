@@ -14,6 +14,12 @@ import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.MessageBox;
+import org.eclipse.swt.custom.CCombo;
+
+import java.util.ArrayList;
+import java.util.Set;
+import java.util.List;
+
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
 import org.pentaho.di.core.Const;
@@ -25,6 +31,19 @@ import org.pentaho.di.ui.core.gui.WindowProperty;
 import org.pentaho.di.ui.core.widget.PasswordTextVar;
 import org.pentaho.di.ui.core.widget.TextVar;
 import org.pentaho.di.ui.trans.step.BaseStepDialog;
+
+
+import com.couchbase.client.java.*;
+import com.couchbase.client.java.kv.*;
+import com.couchbase.client.java.json.*;
+import com.couchbase.client.java.query.*;
+import com.couchbase.client.core.deps.io.netty.handler.ssl.util.InsecureTrustManagerFactory;
+import com.couchbase.client.java.manager.query.CreatePrimaryQueryIndexOptions;
+import com.couchbase.client.java.query.QueryResult;
+import com.couchbase.client.core.env.IoConfig;
+import com.couchbase.client.core.env.SecurityConfig;
+import com.couchbase.client.java.env.ClusterEnvironment;
+import com.couchbase.client.java.manager.bucket.BucketManager;
 
 /**
  * Dialog that allows you to edit the settings of a Couchbase connection
@@ -48,8 +67,9 @@ public class CouchbaseConnectionDialog {
   private TextVar wPort;
   private TextVar wUsername;
   private TextVar wPassword;
-  private TextVar wBucket;
-  private Button m_wIsCloud;
+  private CCombo wBucket;
+  private CCombo m_wIsCloud;
+  private Button getBucketButton;
 
   
   Control lastControl;
@@ -108,14 +128,25 @@ public class CouchbaseConnectionDialog {
     SelectionAdapter selAdapter = new SelectionAdapter() {
       public void widgetDefaultSelected( SelectionEvent e ) {
         ok();
+		
       }
     };
+	SelectionAdapter selBuckets = new SelectionAdapter() {
+      public void widgetDefaultSelected( SelectionEvent e ) {
+        
+		listBuckets();	
+      }
+    };
+
+	
+	
     wUsername.addSelectionListener( selAdapter );
     wPassword.addSelectionListener( selAdapter );
     wHostname.addSelectionListener( selAdapter );
     wPort.addSelectionListener( selAdapter );
     wBucket.addSelectionListener( selAdapter );
     m_wIsCloud.addSelectionListener(selAdapter);
+	getBucketButton.addSelectionListener(selBuckets);
     // Detect X or ALT-F4 or something that kills this window...
     shell.addShellListener( new ShellAdapter() {
       public void shellClosed( ShellEvent e ) {
@@ -167,9 +198,8 @@ public class CouchbaseConnectionDialog {
     fdClean.left = new FormAttachment( 0, 0 );
     fdClean.right = new FormAttachment( middle, -margin );
     wlIsCloud.setLayoutData( fdClean );
-    m_wIsCloud = new Button( shell, SWT.CHECK );
+    m_wIsCloud = new CCombo(shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
     props.setLook( m_wIsCloud );
-	
 	fdClean = new FormData();
     fdClean.top = new FormAttachment( lastControl, margin );
     fdClean.left = new FormAttachment( middle, 0 );
@@ -258,12 +288,21 @@ public class CouchbaseConnectionDialog {
     fdlBucket.left = new FormAttachment( 0, 0 );
     fdlBucket.right = new FormAttachment( middle, -margin );
     wlBucket.setLayoutData( fdlBucket );
-    wBucket = new TextVar( CouchbaseConnection, shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
+	
+	getBucketButton = new Button(shell, SWT.PUSH | SWT.CENTER);
+	getBucketButton.setText("Get Buckets");
+	props.setLook(getBucketButton);
+	FormData getBucketButtonData = new FormData();
+	getBucketButtonData.top = new FormAttachment(lastControl, margin);
+	getBucketButtonData.right = new FormAttachment(100, 0);
+	getBucketButton.setLayoutData(getBucketButtonData);
+	
+    wBucket = new CCombo(shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
     props.setLook( wBucket );
     FormData fdBucket = new FormData();
     fdBucket.top = new FormAttachment( wlBucket, 0, SWT.CENTER );
     fdBucket.left = new FormAttachment( middle, 0 );
-    fdBucket.right = new FormAttachment( 95, 0 );
+    fdBucket.right = new FormAttachment( getBucketButton, -margin  );
     wBucket.setLayoutData( fdBucket );
     lastControl = wBucket;
   }
@@ -280,6 +319,17 @@ public class CouchbaseConnectionDialog {
     wUsername.setText( Const.NVL( CouchbaseConnection.getUsername(), "" ) );
     wPassword.setText( Const.NVL( CouchbaseConnection.getPassword(), "" ) );
     wBucket.setText( Const.NVL( CouchbaseConnection.getBucketName(), "Default" ) );
+	m_wIsCloud.setText( Const.NVL( CouchbaseConnection.getIsCloud(), "On Premise" ) );
+	
+	//boolean isCloud=false;
+	List<String> elementNames = new ArrayList<String>();
+ 
+	 elementNames.add("On Premise");
+	 elementNames.add("Cloud");
+
+     m_wIsCloud.setItems( elementNames.toArray( new String[ 0 ] ) );
+	
+	
     wName.setFocus();
   }
 
@@ -309,6 +359,7 @@ public class CouchbaseConnectionDialog {
     couchbase.setUsername( wUsername.getText() );
     couchbase.setPassword( wPassword.getText() );
 	couchbase.setBucketName( wBucket.getText() );
+	couchbase.setIsCloud(m_wIsCloud.getText());
   }
 
   public void test() {
@@ -327,4 +378,23 @@ public class CouchbaseConnectionDialog {
       new ErrorDialog( shell, "Error", "Error connecting to Couchbase with Hostname '" + couchbase.getRealHostname()+"', port "+couchbase.getRealPort()+", and username '"+couchbase.getRealUsername()+" bucket : "+couchbase.getRealBucket(), e );
     }
   }
+  
+  public void listBuckets()
+  {
+	  CouchbaseConnection couchbase = null;
+	  try{
+	  couchbase = new CouchbaseConnection( CouchbaseConnection );
+	  Cluster cluster= CouchbaseConnection.connectToCouchbaseCluster();
+	  BucketManager bucketManager = cluster.buckets();
+      Set<String> bucketNames = bucketManager.getAllBuckets().keySet();
+	  List<String> elementNames = new ArrayList<String>();
+      
+	  for (String bucketName : bucketNames) {
+               elementNames.add(bucketName);
+		  }
+      wBucket.setItems( elementNames.toArray( new String[ 0 ] ) );
+	  } catch ( Exception e ) {
+			new ErrorDialog( shell, "Error", "Error getting Buckets with Hostname '" + couchbase.getRealHostname()+"', port "+couchbase.getRealPort()+", and username '"+couchbase.getRealUsername()+" bucket : "+couchbase.getRealBucket(), e );
+      }
+ }
 }

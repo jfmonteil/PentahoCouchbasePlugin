@@ -37,19 +37,20 @@ Note that more advanced mechanisms of authentication and connection options (inc
 
 ![Couchbase connection tab](https://raw.githubusercontent.com/jfmonteil/PentahoCouchbasePlugin/main/screenshots/new_connection.png)
 ###Cloud
-Check if it is a Couchbase DBAAS (Cloud). In this case the connection url will be *"cb.<your endpoint address>.dp.cloud.couchbase.com";*. Fill in your *<your endpoint address>* in the *host* field.
+Select if it is a Couchbase DBAAS (Cloud) or "On premise". In this case the connection url will be *"cb.<your endpoint address>.dp.cloud.couchbase.com";*. Fill in your *<your endpoint address>* in the *host* field.
 
 ### Collection 
 Lets you specify a collection (scope will come as well), if no collection is chosen. The default collection will be used covering the whole bucket. Collections and scope are not available before V6 of Couchbase.
 
 ### Insert type 
 Lets you chose from (Upsert / Insert / Batch). 
-*Batch option is not implemented yet (Roadmap : Assync loading)
-*Insert mode DOES NOT update a record if the key already exists. 
-*Upsert inserts or modifies existing records.
+* Batch option is not implemented yet (Roadmap : Assync loading)
+* Insert mode DOES NOT update a record if the key already exists. 
+* Upsert inserts or modifies existing records.
 
 ### Key
 Input Field where the *key* value should be take from 
 
 ### Value
 Input Field where the *Json Document* to insert along with the key. It Must be JSON formatted or it will blow at your face.
+No Binary documents accepted yet, on the roadmap though
